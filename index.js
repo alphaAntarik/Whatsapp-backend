@@ -11,6 +11,10 @@ mongoose
   .then(() => {
     console.log("connceted to MongoDB");
     app.use((req, res, next) => {
+      res.header("Cache-Control", "no-store");
+      next();
+    });
+    app.use((req, res, next) => {
       const start = Date.now();
       next();
       const delta = Date.now() - start;

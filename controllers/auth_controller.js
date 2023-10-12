@@ -17,9 +17,10 @@ const upload = multer({
 });
 async function imageUpload(req, res) {
   try {
-    res.json({
-      path: req.file.filename,
-    });
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.json(req.file.filename);
     return;
   } catch (e) {
     return res.status(400).send(e);
@@ -66,6 +67,18 @@ async function login_using_email(req, res) {
     );
     if (!validPassword) {
       return res.status(400).send("Incorrect email or password.");
+    }
+
+    res.json(user);
+  } catch (e) {
+    return res.status(400).send(e);
+  }
+}
+async function getUserById(req, res) {
+  try {
+    let user = await User.findOne({ _id: req.body.id });
+    if (!user) {
+      return res.status(400).send({ error: "user doesn't exits" });
     }
 
     res.json(user);
@@ -126,4 +139,5 @@ module.exports = {
   imageUpload,
   updateuser,
   deleteuser,
+  getUserById,
 };

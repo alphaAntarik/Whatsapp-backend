@@ -8,6 +8,7 @@ const {
   imageUpload,
   updateuser,
   deleteuser,
+  getUserById,
 } = require("../controllers/auth_controller");
 
 //router.use(express.static(__dirname));
@@ -16,6 +17,7 @@ router.post("/loginEmail", login_using_email);
 router.post("/imageUpload", upload.single("image"), imageUpload);
 router.post("/loginPhoneNumber", login_using_phoneNumber);
 router.put("/update/:id", updateuser);
+router.post("/getbyid", getUserById);
 router.delete("/delete/:id", deleteuser);
 router.use(express.static("uploads"));
 
