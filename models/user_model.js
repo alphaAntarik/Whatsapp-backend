@@ -23,6 +23,16 @@ const User = mongoose.model(
       minlength: 8,
       maxlength: 1024,
     },
+    // lastmessage: {
+    //   type: String,
+    //   minlength: 0,
+    //   //   required: true,
+    // },
+    // lastmessageuserid: {
+    //   type: String,
+    //   minlength: 0,
+    //   //  required: true,
+    // },
     phonenumber: {
       type: String,
       required: true,
@@ -45,6 +55,8 @@ function validator(user) {
     password: joi.string().min(8).max(1024).required(),
     phonenumber: joi.string().min(11).required(),
     profileImage: joi.string().min(0),
+    // lastmessage: joi.string().min(0),
+    // lastmessageuserid: joi.string().min(0),
   });
   return schema.validate(user);
 }

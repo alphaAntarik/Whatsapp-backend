@@ -27,6 +27,31 @@ async function imageUpload(req, res) {
   }
 }
 
+// async function getAllUsers(req, res) {
+//   try {
+//     let user = await User.find();
+
+//     res.json(user);
+//   } catch (e) {
+//     return res.status(400).send(e);
+//   }
+// }
+async function getAllUsers(req, res) {
+  try {
+    const userIdToExclude = req.body.id;
+
+    if (!userIdToExclude) {
+      return res.status(400).send("Missing excludeUserId parameter");
+    }
+
+    let users = await User.find({ _id: { $ne: userIdToExclude } });
+
+    res.json(users);
+  } catch (e) {
+    return res.status(400).send(e);
+  }
+}
+
 async function postUser(req, res) {
   const { error } = validator(req.body);
   if (error) {
@@ -42,6 +67,8 @@ async function postUser(req, res) {
         "password",
         "phonenumber",
         "profileImage",
+        "lastmessage",
+        "lastmessageuserid",
         "_id",
       ])
     );
@@ -109,6 +136,17 @@ async function login_using_phoneNumber(req, res) {
     return res.status(400).send(e);
   }
 }
+// async function updatelast(req, res) {
+//   try {
+//     await User.findByIdAndUpdate(req.params.id, req.body, {
+//       new: true,
+//     });
+//     res.send("success");
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).send(error);
+//   }
+// }
 async function updateuser(req, res) {
   try {
     const myDocument = await User.findByIdAndUpdate(req.params.id, req.body, {
@@ -140,4 +178,6 @@ module.exports = {
   updateuser,
   deleteuser,
   getUserById,
+  getAllUsers,
+  // updatelast,
 };
