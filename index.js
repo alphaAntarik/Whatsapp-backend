@@ -3,7 +3,9 @@ const mongoose = require("mongoose");
 const user_route = require("./routes/user_router");
 // const chat_route = require("./routes/chat_router");
 const { Chat } = require("./models/chat_models");
+const { Status } = require("./models/status_model");
 // const axios = require("axios");
+const cors = require("cors");
 
 const PORT = 3000;
 
@@ -11,6 +13,7 @@ const http = require("http");
 const socketIo = require("socket.io");
 
 const app = express();
+app.use(cors());
 const server = http.createServer(app);
 const io = socketIo(server);
 
@@ -36,8 +39,10 @@ mongoose
 
     const connectedUsers = new Map(); // Map to store connected users and their socket connections
 
-    io.on("connection", (socket) => {
-      console.log("A user connected");
+    const chatNamespace = io.of("/chat");
+    chatNamespace.on("connection", (socket) => {
+      console.log("A user connected to /chat");
+
       socket.on("joinChatRoom", async ({ sender, receiver }) => {
         // Fetch old chats where the sender and receiver match
         const oldChats = await Chat.find({
@@ -51,145 +56,67 @@ mongoose
 
         socket.emit("oldChats", oldChats);
       });
-      // socket.on("joinChatRoom", async () => {
-      //   const oldChats = await Chat.find().sort({ timestamp: 1 }).lean();
-      //   socket.emit("oldChats", oldChats);
-      // });
 
       socket.on("newChatMessage", (data) => {
-        const { from, to } = data;
-
         // Save the chat message to MongoDB
         const chat = new Chat(data);
+
         chat
           .save()
           .then(() => {
             console.log("Chat message saved to MongoDB");
+            chatNamespace.emit("newChatMessage", chat); // Broadcast to all connected clients in /chat namespace
           })
           .catch((err) => {
             console.error(err);
           });
 
-        // Emit the message to the sender
-        socket.emit("newChatMessage", chat);
-
         // Emit the message to the receiver if they are online
-        if (connectedUsers.has(to)) {
-          const receiverSocket = connectedUsers.get(to);
+        if (connectedUsers.has(data.to)) {
+          const receiverSocket = connectedUsers.get(data.to);
           receiverSocket.emit("newChatMessage", chat);
         }
       });
 
-      // Store the socket connection in the map when a user connects
-      socket.on("userConnected", (userId) => {
-        connectedUsers.set(userId, socket);
-      });
-
-      // Handle disconnection and remove the socket from the map
+      // Handle user disconnection
       socket.on("disconnect", () => {
-        console.log("A user disconnected");
-        for (const [userId, userSocket] of connectedUsers) {
-          if (userSocket === socket) {
-            connectedUsers.delete(userId);
-          }
-        }
+        console.log("A user disconnected from /chat");
       });
     });
 
-    // io.on("connection", (socket) => {
-    //   console.log("A user connected");
+    // Status Namespace
+    const statusNamespace = io.of("/status");
+    statusNamespace.on("connection", (socket) => {
+      console.log("A user connected to /status");
 
-    //   //   socket.emit('getUsersByNameAndDOB', { name: 'abc', dob: '29/09/2000' });
-    //   // });
+      socket.on("previousStatus", async () => {
+        // Load previous messages from the database
+        const previousStatus = await Status.find()
+          .sort({ timestamp: -1 })
+          .lean();
 
-    //   // socket.on('matchingUsers', (users) => {
-    //   //   console.log('Matching users:', users);
-    //   //   // Process the list of matching users as needed
-    //   // });
+        socket.emit("oldStatus", previousStatus);
+      });
 
-    //   socket.on("joinChatRoom", async () => {
-    //     const oldChats = await Chat.find().sort({ timestamp: 1 }).lean();
-    //     const filteredOldChats = oldChats.filter(
-    //       (chat) => chat.from === socket.id || chat.to === socket.id
-    //     );
-    //     socket.emit("oldChats", filteredOldChats);
-    //   });
+      socket.on("newStatus", (message) => {
+        const newMessage = new Status(message);
 
-    //   // socket.on("joinChatRoom", async () => {
-    //   //   const oldChats = await Chat.find().sort({ timestamp: 1 }).lean();
-    //   //   socket.emit("oldChats", oldChats);
-    //   // });
+        newMessage
+          .save()
+          .then((savedMessage) => {
+            console.log("Message saved to the database");
+            statusNamespace.emit("newStatus", savedMessage); // Broadcast to all connected clients in /status namespace
+          })
+          .catch((err) => {
+            console.error("Error saving the message:", err);
+          });
+      });
 
-    //   // Handle new chat messages
-    //   socket.on("newChatMessage", (data) => {
-    //     // try {
-    //     //   data = JSON.parse(data);
-    //     // } catch (err) {
-    //     //   console.error("Error parsing chat message data:", err);
-    //     //   return;
-    //     // }
+      socket.on("disconnect", () => {
+        console.log("A user disconnected from /status");
+      });
+    });
 
-    //     //   // Create a new chat instance
-
-    //     const chat = new Chat(data);
-    //     //   chat
-    //     //     .save()
-    //     //     .then(() => {
-    //     //       console.log("Chat message saved to MongoDB");
-    //     //       io.emit("newChatMessage", chat);
-    //     //     })
-    //     //     .catch((err) => {
-    //     //       console.error(err);
-    //     //     });
-    //     // });
-    //     chat
-    //       .save()
-    //       .then(() => {
-    //         console.log("Chat message saved to MongoDB");
-    //         io.to([chat.from, chat.to]).emit("newChatMessage", chat);
-    //       })
-    //       .catch((err) => {
-    //         console.error(err);
-    //       });
-    //   });
-
-    //   // When a new chat message is received
-    //   // socket.on("chat message", (data) => {
-    //   //   // Ensure that the data is parsed to an object
-    //   //   try {
-    //   //     data = JSON.parse(data);
-    //   //   } catch (err) {
-    //   //     console.error("Error parsing chat message data:", err);
-    //   //     return;
-    //   //   }
-
-    //   //   // Create a new chat instance
-    //   //   const chat = new Chat(data);
-
-    //   //   // Save the chat message to MongoDB using promises
-    //   //   chat
-    //   //     .save()
-    //   //     .then(() => {
-    //   //       console.log("Chat message saved to MongoDB");
-    //   //     })
-    //   //     .catch((err) => {
-    //   //       console.error("Error saving chat message:", err);
-    //   //     });
-
-    //   //   // Broadcast the message to all connected clients
-    //   //   io.emit("chat message", data);
-    //   // });
-
-    //   // Handle disconnection
-    //   socket.on("disconnect", () => {
-    //     console.log("A user disconnected");
-    //   });
-    // });
-
-    // Start the server
-    // server.listen(5000, () => {
-    //   console.log("Server is running on http://localhost:5000");
-    // });
     server.listen(PORT, () => console.log(`Listening to ${PORT}`));
   })
   .catch((err) => console.log("Something went wrong"));
