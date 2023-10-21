@@ -92,7 +92,7 @@ mongoose
       socket.on("previousStatus", async () => {
         // Load previous messages from the database
         const previousStatus = await Status.find()
-          .sort({ timestamp: -1 })
+          .sort({ timestamp: 1 })
           .lean();
 
         socket.emit("oldStatus", previousStatus);

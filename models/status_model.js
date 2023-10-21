@@ -24,6 +24,11 @@ const Status = mongoose.model(
       required: true,
       minlength: 1,
     },
+    type: {
+      type: String,
+      required: true,
+      minlength: 1,
+    },
     timestamp: { type: Date, default: Date.now },
   })
 );
